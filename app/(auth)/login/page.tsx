@@ -26,7 +26,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login({ email, password, organization_slug: organizationSlug });
+      await login({ email, password});
       router.push('/dashboard');
     } catch (err) {
       setError('Invalid credentials. Please try again.');

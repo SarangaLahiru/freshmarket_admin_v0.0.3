@@ -16,8 +16,8 @@ export interface Product {
   name: string;
   slug: string;
   description?: string;
-  price: number;
-  original_price?: number;
+  price: string | number; 
+  original_price?: string | number | null; 
   category_id: string;
   category?: Category;
   image?: string;
@@ -32,11 +32,10 @@ export interface Product {
   created_at: string;
   updated_at: string;
 }
-
 export interface CreateProductRequest {
   name: string;
   description?: string;
-  price: number;
+  price:number;
   original_price?: number;
   category_id: string;
   image?: string;

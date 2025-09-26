@@ -1,18 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Loader as Loader2 } from 'lucide-react';
-import { Product, Category, CreateProductRequest, UpdateProductRequest } from '@/types/products';
-import { apiClient } from '@/lib/api-client';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Loader as Loader2 } from "lucide-react";
+import {
+  Product,
+  Category,
+  CreateProductRequest,
+  UpdateProductRequest,
+} from "@/types/products";
+import { apiClient } from "@/lib/api-client";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -21,7 +38,12 @@ interface ProductFormModalProps {
   onSuccess: () => void;
 }
 
-export function ProductFormModal({ isOpen, onClose, product, onSuccess }: ProductFormModalProps) {
+export function ProductFormModal({
+  isOpen,
+  onClose,
+  product,
+  onSuccess,
+}: ProductFormModalProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -42,16 +64,16 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
       fetchCategories();
       if (product) {
         // Populate form with product data
-        setValue('name', product.name);
-        setValue('description', product.description || '');
-        setValue('price', product.price);
-        setValue('original_price', product.original_price || product.price);
-        setValue('category_id', product.category_id);
-        setValue('image', product.image || '');
-        setValue('unit', product.unit);
-        setValue('stock_count', product.stock_count);
-        setValue('is_featured', product.is_featured);
-        setValue('is_on_sale', product.is_on_sale);
+        setValue("name", product.name);
+        setValue("description", product.description || "");
+        setValue("price", product.price);
+        setValue("original_price", product.original_price || product.price);
+        setValue("category_id", product.category_id);
+        setValue("image", product.image || "");
+        setValue("unit", product.unit);
+        setValue("stock_count", product.stock_count);
+        setValue("is_featured", product.is_featured);
+        setValue("is_on_sale", product.is_on_sale);
       } else {
         reset();
       }
@@ -64,38 +86,59 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
       setCategories(data);
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to fetch categories',
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch categories",
       });
     }
   };
 
-  const onSubmit = async (data: CreateProductRequest | UpdateProductRequest) => {
+  const onSubmit = async (
+    data: CreateProductRequest | UpdateProductRequest
+  ) => {
     setIsLoading(true);
     try {
+      // Ensure price, original_price, and stock_count are sent as numbers
+      const formattedData = {
+        ...data,
+        price: parseFloat(data.price.toString()), // Convert to float for float64
+        original_price: data.original_price
+          ? parseFloat(data.original_price.toString())
+          : undefined, // Convert if exists
+        stock_count: parseInt(data.stock_count.toString(), 10), // Convert to integer for int64
+      };
+
       if (isEditing && product) {
-        await apiClient.updateProduct({ ...data, id: product.id } as UpdateProductRequest);
+        console.log("debugID", product.id);
+        await apiClient.updateProduct(
+          product.id,
+          formattedData as UpdateProductRequest
+        ); // Pass id separately
         toast({
-          variant: 'success',
-          title: 'Success',
-          description: 'Product updated successfully',
+          variant: "success",
+          title: "Success",
+          description: "Product updated successfully",
+        });
+        toast({
+          variant: "success",
+          title: "Success",
+          description: "Product updated successfully",
         });
       } else {
-        await apiClient.createProduct(data as CreateProductRequest);
+        await apiClient.createProduct(formattedData as CreateProductRequest);
         toast({
-          variant: 'success',
-          title: 'Success',
-          description: 'Product created successfully',
+          variant: "success",
+          title: "Success",
+          description: "Product created successfully",
         });
       }
       onSuccess();
       onClose();
     } catch (error) {
       toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: `Failed to ${isEditing ? 'update' : 'create'} product`,
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to ${isEditing ? "update" : "create"} product`,
       });
     } finally {
       setIsLoading(false);
@@ -106,9 +149,13 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Edit Product" : "Add New Product"}
+          </DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update product information' : 'Fill in the details to create a new product'}
+            {isEditing
+              ? "Update product information"
+              : "Fill in the details to create a new product"}
           </DialogDescription>
         </DialogHeader>
 
@@ -118,7 +165,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
               <Label htmlFor="name">Product Name *</Label>
               <Input
                 id="name"
-                {...register('name', { required: 'Product name is required' })}
+                {...register("name", { required: "Product name is required" })}
                 placeholder="Enter product name"
               />
               {errors.name && (
@@ -128,7 +175,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
 
             <div className="space-y-2">
               <Label htmlFor="category_id">Category *</Label>
-              <Select onValueChange={(value) => setValue('category_id', value)}>
+              <Select onValueChange={(value) => setValue("category_id", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -141,7 +188,9 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
                 </SelectContent>
               </Select>
               {errors.category_id && (
-                <p className="text-sm text-red-600">{errors.category_id.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.category_id.message}
+                </p>
               )}
             </div>
           </div>
@@ -150,7 +199,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              {...register('description')}
+              {...register("description")}
               placeholder="Enter product description"
               rows={3}
             />
@@ -163,9 +212,10 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
                 id="price"
                 type="number"
                 step="0.01"
-                {...register('price', { 
-                  required: 'Price is required',
-                  min: { value: 0, message: 'Price must be positive' }
+                {...register("price", {
+                  required: "Price is required",
+                  min: { value: 0, message: "Price must be positive" },
+                  valueAsNumber: true, // Ensure the value is parsed as a number
                 })}
                 placeholder="0.00"
               />
@@ -180,14 +230,15 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
                 id="original_price"
                 type="number"
                 step="0.01"
-                {...register('original_price')}
+                {...register("original_price", {
+                  valueAsNumber: true, // Ensure the value is parsed as a number
+                })}
                 placeholder="0.00"
               />
             </div>
-
             <div className="space-y-2">
               <Label htmlFor="unit">Unit *</Label>
-              <Select onValueChange={(value) => setValue('unit', value)}>
+              <Select onValueChange={(value) => setValue("unit", value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select unit" />
                 </SelectTrigger>
@@ -211,14 +262,19 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
               <Input
                 id="stock_count"
                 type="number"
-                {...register('stock_count', { 
-                  required: 'Stock count is required',
-                  min: { value: 0, message: 'Stock count must be positive' }
+                {...register("stock_count", {
+                  required: "Stock count is required",
+                  min: { value: 0, message: "Stock count must be positive" },
+                  valueAsNumber: true,
+                  validate: (value) =>
+                    Number.isInteger(value) || "Stock count must be an integer",
                 })}
                 placeholder="0"
-              />
+              />{" "}
               {errors.stock_count && (
-                <p className="text-sm text-red-600">{errors.stock_count.message}</p>
+                <p className="text-sm text-red-600">
+                  {errors.stock_count.message}
+                </p>
               )}
             </div>
 
@@ -226,7 +282,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
               <Label htmlFor="image">Image URL</Label>
               <Input
                 id="image"
-                {...register('image')}
+                {...register("image")}
                 placeholder="https://example.com/image.jpg"
               />
             </div>
@@ -236,7 +292,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
             <div className="flex items-center space-x-2">
               <Switch
                 id="is_featured"
-                onCheckedChange={(checked) => setValue('is_featured', checked)}
+                onCheckedChange={(checked) => setValue("is_featured", checked)}
                 defaultChecked={product?.is_featured}
               />
               <Label htmlFor="is_featured">Featured Product</Label>
@@ -245,7 +301,7 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
             <div className="flex items-center space-x-2">
               <Switch
                 id="is_on_sale"
-                onCheckedChange={(checked) => setValue('is_on_sale', checked)}
+                onCheckedChange={(checked) => setValue("is_on_sale", checked)}
                 defaultChecked={product?.is_on_sale}
               />
               <Label htmlFor="is_on_sale">On Sale</Label>
@@ -256,9 +312,13 @@ export function ProductFormModal({ isOpen, onClose, product, onSuccess }: Produc
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditing ? 'Update Product' : 'Create Product'}
+              {isEditing ? "Update Product" : "Create Product"}
             </Button>
           </div>
         </form>
