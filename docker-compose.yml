@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Frontend - FreshMarket Admin Dashboard
+  freshmarket-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NODE_ENV=production
+    container_name: freshmarket-admin
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api-gateway:80/api
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - DATABASE_URL=mysql://grocery:grocery123@database:3306/grocery_store
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - database
+      - redis
+      - api-gateway
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API Gateway with Nginx
+  api-gateway:
+    image: nginx:alpine
+    container_name: freshmarket-api-gateway
+    ports:
+      - "3001:80"
+    volumes:
+      - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MariaDB Database
+  database:
+    image: mariadb:10.11
+    container_name: freshmarket-database
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-grocery_store}
+      - MYSQL_USER=${MYSQL_USER:-grocery}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-grocery123}
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - freshmarket_db_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: freshmarket-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - freshmarket_redis_data:/data
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+
+  # Optional: phpMyAdmin for database management
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: freshmarket-phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=database
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+    depends_on:
+      - database
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # Optional: Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: freshmarket-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - freshmarket-network
+    restart: unless-stopped
+    profiles:
+      - tools
+
+networks:
+  freshmarket-network:
+    driver: bridge
+    name: freshmarket-network
+
+volumes:
+  freshmarket_db_data:
+    name: freshmarket_db_data
+  freshmarket_redis_data:
+    name: freshmarket_redis_data
